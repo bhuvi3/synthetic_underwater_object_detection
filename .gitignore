@@ -1,0 +1,14 @@
+\.ipynb_checkpoints/
+.idea/
+code/__pycache__/
+
+project_details/
+data/
+logs/
+tensorboard_logs/
+venv/
+
+*.hdf5
+*.png
+*.jpg
+
