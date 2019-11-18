@@ -20,7 +20,7 @@ import argparse
 import glob
 import os
 import random
-
+import time
 
 def get_args():
     parser = argparse.ArgumentParser(description=
@@ -37,7 +37,7 @@ def get_args():
                         type=int,
                         required=True,
                         help="The number of scenes to generate.")
-    parser.add_argument('--outdir',
+    parser.add_argument('--out-dir',
                         required=True,
                         help="The path to the output dir to which the yolo dataset need to be written.")
     parser.add_argument('--max-objects',
@@ -58,8 +58,8 @@ def get_args():
                              "to begin, as the first few images often must be thrown out. Default: 1.")
 
     args = parser.parse_args()
-    if os.path.exists(args.outdir):
-        raise ValueError("The outdir provided already exists.")
+    if os.path.exists(args.out_dir):
+        raise ValueError("The out-dir provided already exists.")
 
     return args
 
@@ -70,7 +70,7 @@ args = get_args()
 
 object_model_file = args.object_model_file
 background_dir = args.background_dir
-outdir = args.outdir
+out_dir = args.out_dir
 
 start = args.custom_start_index
 end = args.num_scenes
@@ -88,6 +88,9 @@ for file_type in image_file_types:
     background_files.extend(glob.glob(os.path.join(background_dir, file_type)))
 
 num_background_files = len(background_files)
+print("Found %s images in the given background-dir: %s" % (num_background_files, background_dir))
+if num_background_files < 1:
+    raise ValueError("There are no background images.")
 
 # Start the direct show base.
 base = ShowBase()
@@ -95,6 +98,7 @@ camLens = base.cam.node().getLens()
 camLens.setFocalLength(1833)
 # Set the scale of the renderspace (this is not image size, just arbitrary Panda units that will be used later
 # to set image size) create variables for general parameters that may be useful.
+# TODO: How to set lower numbers here to speedup the process.
 camLens.setFilmSize(2048, 1536)
 M = camLens.getProjectionMat()
 f = camLens.getFocalLength()
@@ -218,8 +222,8 @@ def rerender(task):
 
     # XXX: Set the filenames (don't know why images and labels have to be 1 offset, but they do).
     background_img_name = os.path.splitext(os.path.basename(selected_background_image))[0]
-    cur_img_file = os.path.join(outdir, "%s-%s.jpg" % (background_img_name, count - 1))
-    cur_label_file = os.path.join(outdir, "%s-%s.txt" % (background_img_name, count))
+    cur_img_file = os.path.join(out_dir, "%s-%s.jpg" % (background_img_name, count))  # XXX:  count - 1
+    cur_label_file = os.path.join(out_dir, "%s-%s.txt" % (background_img_name, count))
 
     image = PNMImage()  # create a PNMImage wrapper, an image manipulation class native to Panda
     base.win.getDisplayRegion(0).getScreenshot(image)  # grab a PNM screenshot of the display region
@@ -250,9 +254,13 @@ def rerender(task):
 
 
 if __name__ == "__main__":
+    start_time = time.time()
     base.taskMgr.add(rerender, "render")
     try:
-        os.makedirs(outdir)
+        os.makedirs(out_dir)
         base.run()
     finally:
         base.destroy()
+    end_time = time.time()
+    time_taken = end_time - start_time
+    print("Time taken to generate synthetic images: %s seconds" % time_taken)
