@@ -19,7 +19,9 @@ python yolo_data_renderer.py --background-dir ../data/underwater_background/unsp
 
 
 # Manual: Check image names.
-# Manual: Draw bounding box and verify labels.
+
+# Draw bounding box and verify labels.
+
 
 ### Darknet
 # Data preparation:
