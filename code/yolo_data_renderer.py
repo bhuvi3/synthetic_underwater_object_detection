@@ -88,6 +88,8 @@ for file_type in image_file_types:
     background_files.extend(glob.glob(os.path.join(background_dir, file_type)))
 
 num_background_files = len(background_files)
+background_files = sorted(background_files)
+
 print("Found %s images in the given background-dir: %s" % (num_background_files, background_dir))
 if num_background_files < 1:
     raise ValueError("There are no background images.")
@@ -99,7 +101,7 @@ camLens.setFocalLength(1833)
 # Set the scale of the renderspace (this is not image size, just arbitrary Panda units that will be used later
 # to set image size) create variables for general parameters that may be useful.
 # TODO: How to set lower numbers here to speedup the process.
-camLens.setFilmSize(512, 512)  # (2048, 1536)
+camLens.setFilmSize(2048, 1536)  # (2048, 1536)
 M = camLens.getProjectionMat()
 f = camLens.getFocalLength()
 r = camLens.getAspectRatio()
@@ -133,7 +135,10 @@ def coordToImagespace(coord):
     return LPoint2f(x, y)
 
 
+cur_i = 0
+
 def rerender(task):
+    global cur_i
     base.cam.node().getDisplayRegion(0).setClearDepthActive(True)
     # base.cam2d.node().getDisplayRegion(0).setClearDepthActive(True)
     if blur_active:
@@ -143,7 +148,9 @@ def rerender(task):
         filters3D.manager.region.setSort(20)
         filters2D.manager.region.setSort(-20)
 
-    selected_background_image = background_files[random.randint(0, num_background_files - 1)]
+
+    selected_background_image = background_files[cur_i % num_background_files] # background_files[random.randint(0, num_background_files - 1)]
+    cur_i += 1
     background = OnscreenImage(parent=render2d, image=selected_background_image)  # load background image
     base.cam2d.node().getDisplayRegion(0).setSort(-10)
     # lower numbers render first, higher numbers render in front of lower number,
@@ -153,7 +160,8 @@ def rerender(task):
 
     spot = []  # create & wipe array of spotlights for new frame
     metadata = []  # wipe metadata for new frame
-    for mine in mines: mine.hide()  # make sure no mines remain from previous loads
+    for mine in mines:
+        mine.hide()  # make sure no mines remain from previous loads
 
     # The following calculates the 2D bounding box by creating a dummy projection in 2-space and reading the
     # extrema of that node.
@@ -162,12 +170,7 @@ def rerender(task):
     line_path = render2d.attach_new_node(line_node)
     proj_mat = camLens.get_projection_mat_inv()  # read the lens' inverse projection matrix
 
-    # this is how I had to do the counter variable since I couldn't find a way to natively keep track of what iteration
-    # the Panda task 'rerender' is on, but since it creates a new image every frame,
-    # this works well enough to just count frames.
-    count = task.frame + start
     num_mines = random.randint(minMines, maxMines)  # choose how many mines will appear in this scene
-
     for i in range(num_mines):
         # display the active mines
         mines[i].show()
@@ -220,18 +223,24 @@ def rerender(task):
                         + str(box_h / 2)
                         + "\n")
 
-    # XXX: Set the filenames (don't know why images and labels have to be 1 offset, but they do).
-    background_img_name = os.path.splitext(os.path.basename(selected_background_image))[0]
-    cur_img_file = os.path.join(out_dir, "%s-%s.jpg" % (background_img_name, count - 1))  # XXX:  count - 1 (or count?)
-    cur_label_file = os.path.join(out_dir, "%s-%s.txt" % (background_img_name, count))
-
+    # Save the images and labels.
     image = PNMImage()  # create a PNMImage wrapper, an image manipulation class native to Panda
     base.win.getDisplayRegion(0).getScreenshot(image)  # grab a PNM screenshot of the display region
-    imageFile = cur_img_file
-    image.write(Filename(imageFile))  # write the screenshot to the above file
+
+    # this is how I had to do the counter variable since I couldn't find a way to natively keep track of what iteration
+    # the Panda task 'rerender' is on, but since it creates a new image every frame,
+    # this works well enough to just count frames.
+    count = task.frame + start
+
+    # XXX: Set the filenames (don't know why images and labels have to be 1 offset, but they do).
+    background_img_name = os.path.splitext(os.path.basename(selected_background_image))[0]
+    cur_img_file = os.path.join(out_dir, "%s-%s.jpg" % ("name", count - 1))  # XXX:  count - 1 (or count?)
+    cur_label_file = os.path.join(out_dir, "%s-%s.txt" % ("name", count))
+
+    image.write(Filename(cur_img_file))  # write the screenshot to the above file
     with open(cur_label_file, "w") as labelFile:
         labelFile.writelines(metadata)  # write the label data for separate mines to separate lines
-        print(str(num_mines) + " mines in " + imageFile + " / " + str(len(metadata)) + " lines in %s"
+        print(str(num_mines) + " mines in " + cur_img_file + " / " + str(len(metadata)) + " lines in %s"
               % cur_label_file)
 
     # Wipes the bounding boxes
