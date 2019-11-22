@@ -135,10 +135,7 @@ def coordToImagespace(coord):
     return LPoint2f(x, y)
 
 
-cur_i = 0
-
-def rerender(task):
-    global cur_i
+def rerender(task, selected_background_image=None, count_id=None):
     base.cam.node().getDisplayRegion(0).setClearDepthActive(True)
     # base.cam2d.node().getDisplayRegion(0).setClearDepthActive(True)
     if blur_active:
@@ -148,10 +145,18 @@ def rerender(task):
         filters3D.manager.region.setSort(20)
         filters2D.manager.region.setSort(-20)
 
+    # Read arguments from frame name.
+    # TODO: Instead read params from the lambda function.
+    toks = task.name.split("-")
+    count_id = int(toks[-1])
+    selected_background_image = '-'.join(toks[:-1])
 
-    selected_background_image = background_files[cur_i % num_background_files] # background_files[random.randint(0, num_background_files - 1)]
-    cur_i += 1
-    background = OnscreenImage(parent=render2d, image=selected_background_image)  # load background image
+    if not os.path.exists(selected_background_image):
+        raise ValueError("Background image not found: %s" % selected_background_image)
+    else:
+        print("Loading background image: %s" % selected_background_image)
+
+    OnscreenImage(parent=render2d, image=selected_background_image)  # load background image
     base.cam2d.node().getDisplayRegion(0).setSort(-10)
     # lower numbers render first, higher numbers render in front of lower number,
     # Display regions can also be accessed using base.win.getDisplayRegion(#),
@@ -227,49 +232,43 @@ def rerender(task):
     image = PNMImage()  # create a PNMImage wrapper, an image manipulation class native to Panda
     base.win.getDisplayRegion(0).getScreenshot(image)  # grab a PNM screenshot of the display region
 
-    # this is how I had to do the counter variable since I couldn't find a way to natively keep track of what iteration
-    # the Panda task 'rerender' is on, but since it creates a new image every frame,
-    # this works well enough to just count frames.
-    count = task.frame + start
-
     # XXX: Set the filenames (don't know why images and labels have to be 1 offset, but they do).
     background_img_name = os.path.splitext(os.path.basename(selected_background_image))[0]
-    cur_img_file = os.path.join(out_dir, "%s-%s.jpg" % ("name", count - 1))  # XXX:  count - 1 (or count?)
-    cur_label_file = os.path.join(out_dir, "%s-%s.txt" % ("name", count))
+    cur_img_file = os.path.join(out_dir, "%s-%s.jpg" % (background_img_name, count_id))
+    cur_label_file = os.path.join(out_dir, "%s-%s.txt" % (background_img_name, count_id))
 
     image.write(Filename(cur_img_file))  # write the screenshot to the above file
     with open(cur_label_file, "w") as labelFile:
         labelFile.writelines(metadata)  # write the label data for separate mines to separate lines
-        print(str(num_mines) + " mines in " + cur_img_file + " / " + str(len(metadata)) + " lines in %s"
-              % cur_label_file)
+        print(str(num_mines) + " mines in " + cur_img_file + " / " + str(len(metadata)) + " lines in %s" % cur_label_file)
 
     # Wipes the bounding boxes
     line_node.remove_all_geoms()
 
-    if verbose and count / 10.0 == count // 10:
+    if verbose and count_id / 10.0 == count_id // 10:
         print("\n3D scene analysis:")
         render.analyze()
         print("2D scene analysis:")
         render2d.analyze()
 
-    print("Created scenes: %s" % count)
-    if count < end:
-        print("Calling cont.")
-        return task.cont
-    else:
-        print("Series complete.")
-        base.finalizeExit()
-        return task.done
+    print("Created scene for %s-%s" % (selected_background_image, count_id))
+    return task.done
 
 
 if __name__ == "__main__":
     start_time = time.time()
-    base.taskMgr.add(rerender, "render")
+
+    for count_id in range(end):
+        selected_background_image = background_files[count_id % num_background_files]
+        base.taskMgr.add(rerender, "%s-%s" % (selected_background_image, count_id), priority=count_id+1)
+
     try:
         os.makedirs(out_dir)
         base.run()
     finally:
+        base.finalizeExit()
         base.destroy()
+
     end_time = time.time()
     time_taken = end_time - start_time
     print("Time taken to generate synthetic images: %s seconds" % time_taken)
