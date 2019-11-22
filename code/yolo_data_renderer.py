@@ -99,7 +99,7 @@ camLens.setFocalLength(1833)
 # Set the scale of the renderspace (this is not image size, just arbitrary Panda units that will be used later
 # to set image size) create variables for general parameters that may be useful.
 # TODO: How to set lower numbers here to speedup the process.
-camLens.setFilmSize(2048, 1536)
+camLens.setFilmSize(512, 512)  # (2048, 1536)
 M = camLens.getProjectionMat()
 f = camLens.getFocalLength()
 r = camLens.getAspectRatio()
@@ -222,7 +222,7 @@ def rerender(task):
 
     # XXX: Set the filenames (don't know why images and labels have to be 1 offset, but they do).
     background_img_name = os.path.splitext(os.path.basename(selected_background_image))[0]
-    cur_img_file = os.path.join(out_dir, "%s-%s.jpg" % (background_img_name, count))  # XXX:  count - 1
+    cur_img_file = os.path.join(out_dir, "%s-%s.jpg" % (background_img_name, count - 1))  # XXX:  count - 1 (or count?)
     cur_label_file = os.path.join(out_dir, "%s-%s.txt" % (background_img_name, count))
 
     image = PNMImage()  # create a PNMImage wrapper, an image manipulation class native to Panda

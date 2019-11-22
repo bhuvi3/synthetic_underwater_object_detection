@@ -65,6 +65,8 @@ def create_darknet_training_files(dataset_name, data_dir, classes, val_split, ou
     val_file_path = os.path.join(out_dir, "%s-val.txt" % dataset_name)
     names_file_path = os.path.join(out_dir, "%s.names" % dataset_name)
     data_file_path = os.path.join(out_dir, "%s.data" % dataset_name)
+    backup_dir_path = os.path.join(out_dir, "darknet_backup")
+    os.makedirs(backup_dir_path)
 
     for x in [train_file_path, val_file_path, names_file_path, data_file_path]:
         if os.path.exists(x):
@@ -91,7 +93,7 @@ def create_darknet_training_files(dataset_name, data_dir, classes, val_split, ou
         data_fp.write("train=%s\n" % os.path.abspath(train_file_path))
         data_fp.write("val=%s\n" % os.path.abspath(val_file_path))
         data_fp.write("names=%s\n" % os.path.abspath(names_file_path))
-        data_fp.write("backup=%s\n" % os.path.join(data_dir, "backup"))
+        data_fp.write("backup=%s\n" % os.path.abspath(backup_dir_path))
 
     print("The darknet training files have been created at %s" % os.path.abspath(out_dir))
     print("Manual Task: Copy the darknet config to this directory and update the values.")
