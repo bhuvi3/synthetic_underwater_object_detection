@@ -21,6 +21,7 @@ except:
     raise
 
 image_files = glob.glob(os.path.join(images_labels_dir_name, "*.jpg"))
+image_files = sorted(image_files)
 
 image_shape_dict = defaultdict(int)
 for img_path in image_files:
@@ -30,7 +31,7 @@ for img_path in image_files:
 
     label = str(img_path.replace('jpg', 'txt'))
 
-    print("Image file: %s\nlabel file: %s" % (os.path.basename(img_path), os.path.basename(label)))
+    print("Image-Label: %s | %s" % (os.path.basename(img_path), os.path.basename(label)))
     with open(label.rstrip()) as label:
         for _bbox in label:
             bbox = _bbox.split(' ')

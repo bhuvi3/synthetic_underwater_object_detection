@@ -11,7 +11,24 @@ refactored the code in this file for integration.
 
 """
 
-from direct.showbase.ShowBase import ShowBase
+# TODO: Currently windowsless feature is not working.
+windowless = False
+
+if windowless:
+    from panda3d.core import loadPrcFileData
+    loadPrcFileData("",
+    """
+       load-display p3tinydisplay # to force CPU only rendering (to make it available as an option if everything else fail, use aux-display p3tinydisplay)
+       window-type offscreen # Spawn an offscreen buffer (use window-type none if you don't need any rendering)
+       audio-library-name null # Prevent ALSA errors
+       show-frame-rate-meter 0
+       sync-video 0
+    """)
+    from direct.showbase.ShowBase import ShowBase
+    base = ShowBase()
+else:
+    import direct.directbase.DirectStart
+
 from direct.gui.OnscreenImage import OnscreenImage
 from direct.filter.CommonFilters import CommonFilters
 from panda3d.core import *
@@ -50,12 +67,6 @@ def get_args():
     parser.add_argument('--blur',
                         action="store_true",
                         help="Toggles the blur shader on the mines.")
-    parser.add_argument('--custom-start-index',
-                        default=1,
-                        type=int,
-                        help="A custom starting index. "
-                             "You may want to set your starting index a bit below where you actually want the series "
-                             "to begin, as the first few images often must be thrown out. Default: 1.")
 
     args = parser.parse_args()
     if os.path.exists(args.out_dir):
@@ -65,6 +76,11 @@ def get_args():
 
 
 ###
+# XXX: The script uses sleep to wait for renders. Also, it uses 2 dummy images to correct the sequencing.
+SLEEP_TIME = 0.01
+NUM_DUMMIES = 2
+DUMMY_SUFFIX = "dummy"
+
 # Global Variables:
 args = get_args()
 
@@ -72,8 +88,7 @@ object_model_file = args.object_model_file
 background_dir = args.background_dir
 out_dir = args.out_dir
 
-start = args.custom_start_index
-end = args.num_scenes
+num_scenes = args.num_scenes
 
 minMines = 0
 maxMines = args.max_objects
@@ -95,7 +110,8 @@ if num_background_files < 1:
     raise ValueError("There are no background images.")
 
 # Start the direct show base.
-base = ShowBase()
+#base.graphicsEngine.renderFrame()
+
 camLens = base.cam.node().getLens()
 camLens.setFocalLength(1833)
 # Set the scale of the renderspace (this is not image size, just arbitrary Panda units that will be used later
@@ -135,8 +151,9 @@ def coordToImagespace(coord):
     return LPoint2f(x, y)
 
 
-def rerender(task, selected_background_image=None, count_id=None):
+def rerender(task):
     base.cam.node().getDisplayRegion(0).setClearDepthActive(True)
+    time.sleep(SLEEP_TIME)
     # base.cam2d.node().getDisplayRegion(0).setClearDepthActive(True)
     if blur_active:
         filters3D.manager.region.setClearDepthActive(True)
@@ -148,7 +165,13 @@ def rerender(task, selected_background_image=None, count_id=None):
     # Read arguments from frame name.
     # TODO: Instead read params from the lambda function.
     toks = task.name.split("-")
-    count_id = int(toks[-1])
+    count_id = toks[-1]
+    is_dummy = False
+    if count_id == DUMMY_SUFFIX:
+        is_dummy = True
+    else:
+        count_id = int(count_id)
+
     selected_background_image = '-'.join(toks[:-1])
 
     if not os.path.exists(selected_background_image):
@@ -156,7 +179,7 @@ def rerender(task, selected_background_image=None, count_id=None):
     else:
         print("Loading background image: %s" % selected_background_image)
 
-    OnscreenImage(parent=render2d, image=selected_background_image)  # load background image
+    background = OnscreenImage(parent=render2d, image=selected_background_image)  # load background image
     base.cam2d.node().getDisplayRegion(0).setSort(-10)
     # lower numbers render first, higher numbers render in front of lower number,
     # Display regions can also be accessed using base.win.getDisplayRegion(#),
@@ -229,38 +252,47 @@ def rerender(task, selected_background_image=None, count_id=None):
                         + "\n")
 
     # Save the images and labels.
-    image = PNMImage()  # create a PNMImage wrapper, an image manipulation class native to Panda
-    base.win.getDisplayRegion(0).getScreenshot(image)  # grab a PNM screenshot of the display region
-
     # XXX: Set the filenames (don't know why images and labels have to be 1 offset, but they do).
     background_img_name = os.path.splitext(os.path.basename(selected_background_image))[0]
     cur_img_file = os.path.join(out_dir, "%s-%s.jpg" % (background_img_name, count_id))
     cur_label_file = os.path.join(out_dir, "%s-%s.txt" % (background_img_name, count_id))
 
-    image.write(Filename(cur_img_file))  # write the screenshot to the above file
-    with open(cur_label_file, "w") as labelFile:
-        labelFile.writelines(metadata)  # write the label data for separate mines to separate lines
-        print(str(num_mines) + " mines in " + cur_img_file + " / " + str(len(metadata)) + " lines in %s" % cur_label_file)
+    base.graphicsEngine.renderFrame()
+    time.sleep(SLEEP_TIME)
+    if not is_dummy:
+        base.win.saveScreenshot(cur_img_file)
+        time.sleep(SLEEP_TIME)
+
+    if not is_dummy:
+        with open(cur_label_file, "w") as labelFile:
+            labelFile.writelines(metadata)  # write the label data for separate mines to separate lines
+            print(str(num_mines) + " mines in " + cur_img_file + " / " + str(len(metadata)) + " lines in %s" % cur_label_file)
 
     # Wipes the bounding boxes
     line_node.remove_all_geoms()
 
-    if verbose and count_id / 10.0 == count_id // 10:
+    if verbose and type(count_id) == int and count_id / 10.0 == count_id // 10:
         print("\n3D scene analysis:")
         render.analyze()
         print("2D scene analysis:")
         render2d.analyze()
 
     print("Created scene for %s-%s" % (selected_background_image, count_id))
+
     return task.done
 
 
 if __name__ == "__main__":
     start_time = time.time()
 
-    for count_id in range(end):
+    dummy_call_image = background_files[-1]
+    for di in range(NUM_DUMMIES):
+        cur_dummy_file_prefix = "%s-%s" % (dummy_call_image, DUMMY_SUFFIX)
+        base.taskMgr.add(rerender, cur_dummy_file_prefix, priority=di+1)
+
+    for count_id in range(num_scenes):
         selected_background_image = background_files[count_id % num_background_files]
-        base.taskMgr.add(rerender, "%s-%s" % (selected_background_image, count_id), priority=count_id+1)
+        base.taskMgr.add(rerender, "%s-%s" % (selected_background_image, count_id+1), priority=count_id+3)
 
     try:
         os.makedirs(out_dir)
