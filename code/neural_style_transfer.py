@@ -39,6 +39,11 @@ def get_args():
     parser.add_argument('--weights',
                         default="imagenet",
                         help="Indicate the weights for the VGG network to retrive the style and the content layers.")
+    parser.add_argument('--grayscale',
+                        action="store_true",
+                        help="Boolean flag to indicate if the grayscale version of the transformed image needs"
+                             "to be saved. In single mode, creates a new file, and in multiple-mode, "
+                             "it creates a new directory.")
 
     # TODO: Add more options for separate pretrained weights for style and content images.
     args = parser.parse_args()
@@ -125,7 +130,7 @@ class StyleContentModel(tf.keras.models.Model):
         return {'content': content_dict, 'style': style_dict}
 
 
-def apply_neural_style_transfer(content_path, style_path, out_file_path, weights='imagenet'):
+def apply_neural_style_transfer(content_path, style_path, weights='imagenet'):
     def style_content_loss(outputs):
         style_outputs = outputs['style']
         content_outputs = outputs['content']
@@ -192,24 +197,30 @@ def apply_neural_style_transfer(content_path, style_path, out_file_path, weights
             train_step(image)
 
     transformed_image = tensor_to_image(image)
-    transformed_image.save(out_file_path)
 
     end = time.time()
     print("Total time: {:.1f}".format(end - start))
+    return transformed_image
 
 
 def process_neural_style_transfer(args):
     if not os.path.isdir(args.content_path):
         print("Processing Neural Style Transfer for single image.")
         assert os.path.isdir(args.style_path) is False
-        apply_neural_style_transfer(args.content_path, args.style_path, args.out_path, weights=args.weights)
-        print("Procesed the Neural Style Transfer and output written to %s." % args.out_path)
+        transformed_image = apply_neural_style_transfer(args.content_path, args.style_path, weights=args.weights)
+        transformed_image.save(args.out_path)
+        if args.grayscale:
+            transformed_image.convert('L').save("%s-gray%s" % os.path.splitext(args.out_path))
+        print("Processed the Neural Style Transfer and output written to %s." % args.out_path)
         return
 
     # Assumes that style and content paths are directory containing multiple files.
     print("Processing Neural Style Transfer for JPG images in the directory (content-path).")
     assert os.path.isdir(args.style_path) is True
     os.makedirs(args.out_path)
+    if args.grayscale:
+        gray_out_dir = "%s-gray" % args.out_path
+        os.makedirs(gray_out_dir)
     print("Applying Neural Style transfer to content images (JPG) in the content-path, and referring to "
           "matching style image names in the style-path. Writing the style transferred images to out-path. "
           "If annotation files are found in the content-path, they will copied to the out-path as well")
@@ -221,17 +232,25 @@ def process_neural_style_transfer(args):
         c += 1
         print("Processing NST for content image: %s (out of %s)" % (c, num_content_images))
         cur_content_file_basename = os.path.splitext(os.path.basename(cur_content_path))[0]
-        cur_style_path = os.path.join(args.style_path, "%s.jpg" % "".join(cur_content_file_basename.split("-")[:-1]))
-        assert os.path.exists(cur_style_path)
+        cur_style_path = os.path.join(args.style_path, "%s.jpg" % "-".join(cur_content_file_basename.split("-")[:-1]))
+        assert os.path.exists(cur_style_path), "Style image %s was not found." % cur_style_path
         cur_out_path = os.path.join(args.out_path, "%s.jpg" % cur_content_file_basename)
-        apply_neural_style_transfer(cur_content_path, cur_style_path, cur_out_path, weights=args.weights)
+        transformed_image = apply_neural_style_transfer(cur_content_path, cur_style_path, weights=args.weights)
+        transformed_image.save(cur_out_path)
+        if args.grayscale:
+            cur_gray_out_path = os.path.join(gray_out_dir, "%s.jpg" % cur_content_file_basename)
+            transformed_image.convert('L').save(cur_gray_out_path)
 
         cur_anno_path = os.path.join(args.content_path, "%s.txt" % cur_content_file_basename)
         if os.path.exists(cur_anno_path):
             cur_anno_out_path = os.path.join(args.out_path, "%s.txt" % cur_content_file_basename)
             shutil.copy(cur_anno_path, cur_anno_out_path)
+            if args.grayscale:
+                cur_gray_anno_out_path = os.path.join(gray_out_dir, "%s.txt" % cur_content_file_basename)
+                shutil.copy(cur_anno_path, cur_gray_anno_out_path)
 
-    print("Processed Neural Style Transfer for %s images in the conten-path and output written to %s" % args.out_path)
+    print("Processed Neural Style Transfer for %s images in the content-path and output written to %s"
+          % (num_content_images, args.out_path))
 
 
 if __name__ == "__main__":
