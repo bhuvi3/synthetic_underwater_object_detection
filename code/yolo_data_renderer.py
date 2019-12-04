@@ -54,6 +54,10 @@ def get_args():
                         type=int,
                         required=True,
                         help="The number of scenes to generate.")
+    parser.add_argument('--count-offset',
+                        type=int,
+                        default=0,
+                        help="The offset for the starting count. Default: 0.")
     parser.add_argument('--out-dir',
                         required=True,
                         help="The path to the output dir to which the yolo dataset need to be written.")
@@ -69,15 +73,40 @@ def get_args():
                         help="Toggles the blur shader on the mines.")
 
     args = parser.parse_args()
-    if os.path.exists(args.out_dir):
-        raise ValueError("The out-dir provided already exists.")
 
     return args
+
+# Timeout function.
+from functools import wraps
+import errno
+import os
+import signal
+
+class TimeoutError(Exception):
+    pass
+
+def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
+    def decorator(func):
+        def _handle_timeout(signum, frame):
+            raise TimeoutError(error_message)
+
+        def wrapper(*args, **kwargs):
+            signal.signal(signal.SIGALRM, _handle_timeout)
+            signal.alarm(seconds)
+            try:
+                result = func(*args, **kwargs)
+            finally:
+                signal.alarm(0)
+            return result
+
+        return wraps(func)(wrapper)
+
+    return decorator
 
 
 ###
 # XXX: The script uses sleep to wait for renders. Also, it uses 2 dummy images to correct the sequencing.
-SLEEP_TIME = 0.01
+SLEEP_TIME = 0.001
 NUM_DUMMIES = 2
 DUMMY_SUFFIX = "dummy"
 
@@ -281,6 +310,15 @@ def rerender(task):
 
     return task.done
 
+@timeout(4)
+def run_base():
+    try:
+        os.makedirs(out_dir, exist_ok=True)
+        base.run()
+    finally:
+        base.finalizeExit()
+        base.destroy()
+
 
 if __name__ == "__main__":
     start_time = time.time()
@@ -290,16 +328,14 @@ if __name__ == "__main__":
         cur_dummy_file_prefix = "%s-%s" % (dummy_call_image, DUMMY_SUFFIX)
         base.taskMgr.add(rerender, cur_dummy_file_prefix, priority=di+1)
 
+    print("Shuffling the background files.")
+    random.shuffle(background_files)
     for count_id in range(num_scenes):
+        count_id += args.count_offset
         selected_background_image = background_files[count_id % num_background_files]
         base.taskMgr.add(rerender, "%s-%s" % (selected_background_image, count_id+1), priority=count_id+3)
 
-    try:
-        os.makedirs(out_dir)
-        base.run()
-    finally:
-        base.finalizeExit()
-        base.destroy()
+    run_base()
 
     end_time = time.time()
     time_taken = end_time - start_time
