@@ -29,7 +29,8 @@ def get_args():
     """)
     parser.add_argument('--content-path',
                         required=True,
-                        help="The path (or dir) to the content image.")
+                        help="The path (or dir) to the content image. "
+                             "If directory, the folder must contain the annotation file as well.")
     parser.add_argument('--style-path',
                         required=True,
                         help="The path (or dir) to the style image.")
@@ -38,7 +39,7 @@ def get_args():
                         help="The path to the output file (or dir) to which the transformed image needs to be written.")
     parser.add_argument('--weights',
                         default="imagenet",
-                        help="Indicate the weights for the VGG network to retrive the style and the content layers.")
+                        help="Indicate the weights for the VGG network to retrieve the style and the content layers.")
     parser.add_argument('--grayscale',
                         action="store_true",
                         help="Boolean flag to indicate if the grayscale version of the transformed image needs"
@@ -230,24 +231,32 @@ def process_neural_style_transfer(args):
     c = 0
     for cur_content_path in content_image_paths:
         c += 1
-        print("Processing NST for content image: %s (out of %s)" % (c, num_content_images))
-        cur_content_file_basename = os.path.splitext(os.path.basename(cur_content_path))[0]
-        cur_style_path = os.path.join(args.style_path, "%s.jpg" % "-".join(cur_content_file_basename.split("-")[:-1]))
-        assert os.path.exists(cur_style_path), "Style image %s was not found." % cur_style_path
-        cur_out_path = os.path.join(args.out_path, "%s.jpg" % cur_content_file_basename)
-        transformed_image = apply_neural_style_transfer(cur_content_path, cur_style_path, weights=args.weights)
-        transformed_image.save(cur_out_path)
-        if args.grayscale:
-            cur_gray_out_path = os.path.join(gray_out_dir, "%s.jpg" % cur_content_file_basename)
-            transformed_image.convert('L').save(cur_gray_out_path)
+        try:
+            print("Processing NST for content image: %s (out of %s)" % (c, num_content_images))
+            cur_content_file_basename = os.path.splitext(os.path.basename(cur_content_path))[0]
+            cur_style_path = os.path.join(args.style_path, "%s.jpg" % "-".join(cur_content_file_basename.split("-")[:-1]))
+            assert os.path.exists(cur_style_path), "Style image %s was not found." % cur_style_path
+            cur_out_path = os.path.join(args.out_path, "%s.jpg" % cur_content_file_basename)
+            cur_anno_path = os.path.join(args.content_path, "%s.txt" % cur_content_file_basename)
+            if not os.path.exists(cur_anno_path):
+                print("Annotation file doesn't exist: %s. Skipping the content file." % cur_anno_path)
+                continue
 
-        cur_anno_path = os.path.join(args.content_path, "%s.txt" % cur_content_file_basename)
-        if os.path.exists(cur_anno_path):
+            # Transform and save the transformed image and the annotation file.
+            transformed_image = apply_neural_style_transfer(cur_content_path, cur_style_path, weights=args.weights)
+            transformed_image.save(cur_out_path)
             cur_anno_out_path = os.path.join(args.out_path, "%s.txt" % cur_content_file_basename)
             shutil.copy(cur_anno_path, cur_anno_out_path)
+
             if args.grayscale:
+                cur_gray_out_path = os.path.join(gray_out_dir, "%s.jpg" % cur_content_file_basename)
+                transformed_image.convert('L').save(cur_gray_out_path)
                 cur_gray_anno_out_path = os.path.join(gray_out_dir, "%s.txt" % cur_content_file_basename)
                 shutil.copy(cur_anno_path, cur_gray_anno_out_path)
+        except Exception as e:
+            print("Run for content image (in sorted order) %s failed. "
+                  "Skipping it and going for the next content image." % c)
+            print("Error: %s" % str(e))
 
     print("Processed Neural Style Transfer for %s images in the content-path and output written to %s"
           % (num_content_images, args.out_path))
