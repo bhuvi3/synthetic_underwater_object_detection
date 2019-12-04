@@ -15,8 +15,7 @@ docker cp path_in_local a0bb7eeed020:/projects/
 
 ### Create data.
 # Yolo data synthetic renderer.
-python yolo_data_renderer.py --background-dir ../data/underwater_background/unsplash/unsplash_underwater_collection --object-model-file ../panda3d_models/mine.egg --num-scenes 250 --out-dir ../data/darknet_datasets/unsplash_mine_raw-1/darknet_images_labels --max-objects 2
-
+python run_yolo_data_renderer.py --background-dir ../data/underwater_background/unsplash/unsplash_underwater_collection --object-model-file ../panda3d_models/mine.egg --num-scenes 1000 --out-dir ../data/darknet_datasets/unsplash_mine_raw/darknet_images_labels --max-objects 2
 
 # Manual: Check image names.
 
