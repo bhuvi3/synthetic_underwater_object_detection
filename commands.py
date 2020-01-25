@@ -75,5 +75,10 @@ label_files = glob.glob("darknet_images_labels-orig/*.txt")
 for label_file in label_files:
     shutil.copy(label_file, os.path.join("darknet_images_labels", os.path.basename(label_file)))
 
+
 # Running NST on resized images.
 python neural_style_transfer.py --content-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels --style-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/unsplash_underwater_collection --out-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-NST --grayscale --max-dim 256 &> ../logs/nst_run-resized.log
+
+
+# Runnning NST on sample dataset.
+python neural_style_transfer.py --content-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-sample --style-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/unsplash_underwater_collection --out-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-sample-NST --grayscale --max-dim 256 &> ../logs/nst_run-sample.log
