@@ -7,6 +7,8 @@ The script performs neural style transfer on given pair of style image and conte
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from processify import processify
+
 import tensorflow as tf
 
 import numpy as np
@@ -135,6 +137,7 @@ class StyleContentModel(tf.keras.models.Model):
         return {'content': content_dict, 'style': style_dict}
 
 
+@processify
 def apply_neural_style_transfer(content_path, style_path, max_dim, weights='imagenet'):
     def style_content_loss(outputs):
         style_outputs = outputs['style']
@@ -275,4 +278,3 @@ def process_neural_style_transfer(args):
 if __name__ == "__main__":
     args = get_args()
     process_neural_style_transfer(args)
-
