@@ -48,4 +48,32 @@ python darknet_dataset_creator.py --dataset-name unsplash_rendered_test --data-d
 # Correcting segmentation fault:
 deleted some images which did not have matching labels (5), the corrected darknet_images_labels: /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels
 
-# Check yolo3-wells.cfg from unsplash_rendered_test
+# TODO: Review the neural_style_transfer script which is still unstaged.
+
+# TODO: Check yolo3-wells.cfg from unsplash_rendered_test
+
+# previous run:
+python neural_style_transfer.py --content-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels --style-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/unsplash_underwater_collection --out-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-NST --grayscale --max-dim 256 &> nst_run2.log
+
+
+# Resizing the images in the unsplash_mine_raw/darknet_images_labels (original images stored in unsplash_mine_raw/darknet_images_labels-orig).
+from PIL import Image
+import glob
+import os
+import shutil
+
+size = 256, 256
+
+input_images = glob.glob("darknet_images_labels-orig/*.jpg")
+for infile in input_images:
+    outfile = os.path.join("darknet_images_labels", os.path.basename(infile))
+    im = Image.open(infile)
+    im.thumbnail(size, Image.ANTIALIAS)
+    im.save(outfile, "JPEG")
+
+label_files = glob.glob("darknet_images_labels-orig/*.txt")
+for label_file in label_files:
+    shutil.copy(label_file, os.path.join("darknet_images_labels", os.path.basename(label_file)))
+
+# Running NST on resized images.
+python neural_style_transfer.py --content-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels --style-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/unsplash_underwater_collection --out-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-NST --grayscale --max-dim 256 &> ../logs/nst_run-resized.log

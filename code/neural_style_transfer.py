@@ -45,6 +45,11 @@ def get_args():
                         help="Boolean flag to indicate if the grayscale version of the transformed image needs"
                              "to be saved. In single mode, creates a new file, and in multiple-mode, "
                              "it creates a new directory.")
+    parser.add_argument('--max-dim',
+                        type=int,
+                        default=512,
+                        help="The maximum dimension to which the images are resized "
+                             "before applying Neural Style Transfer.")
 
     # TODO: Add more options for separate pretrained weights for style and content images.
     args = parser.parse_args()
@@ -60,8 +65,7 @@ def tensor_to_image(tensor):
     return PIL.Image.fromarray(tensor)
 
 
-def load_img(path_to_img):
-    max_dim = 512
+def load_img(path_to_img, max_dim):
     img = tf.io.read_file(path_to_img)
     img = tf.image.decode_image(img, channels=3)
     img = tf.image.convert_image_dtype(img, tf.float32)
@@ -131,7 +135,7 @@ class StyleContentModel(tf.keras.models.Model):
         return {'content': content_dict, 'style': style_dict}
 
 
-def apply_neural_style_transfer(content_path, style_path, weights='imagenet'):
+def apply_neural_style_transfer(content_path, style_path, max_dim, weights='imagenet'):
     def style_content_loss(outputs):
         style_outputs = outputs['style']
         content_outputs = outputs['content']
@@ -157,8 +161,8 @@ def apply_neural_style_transfer(content_path, style_path, weights='imagenet'):
         image.assign(clip_0_1(image))
 
     # Load the Content and Style images.
-    content_image = load_img(content_path)
-    style_image = load_img(style_path)
+    content_image = load_img(content_path, max_dim)
+    style_image = load_img(style_path, max_dim)
 
     # Define content and style representations.
     # Content layer where will pull our feature maps
@@ -208,7 +212,10 @@ def process_neural_style_transfer(args):
     if not os.path.isdir(args.content_path):
         print("Processing Neural Style Transfer for single image.")
         assert os.path.isdir(args.style_path) is False
-        transformed_image = apply_neural_style_transfer(args.content_path, args.style_path, weights=args.weights)
+        transformed_image = apply_neural_style_transfer(args.content_path,
+                                                        args.style_path,
+                                                        args.max_dim,
+                                                        weights=args.weights)
         transformed_image.save(args.out_path)
         if args.grayscale:
             transformed_image.convert('L').save("%s-gray%s" % os.path.splitext(args.out_path))
@@ -243,7 +250,10 @@ def process_neural_style_transfer(args):
                 continue
 
             # Transform and save the transformed image and the annotation file.
-            transformed_image = apply_neural_style_transfer(cur_content_path, cur_style_path, weights=args.weights)
+            transformed_image = apply_neural_style_transfer(cur_content_path,
+                                                            cur_style_path,
+                                                            args.max_dim,
+                                                            weights=args.weights)
             transformed_image.save(cur_out_path)
             cur_anno_out_path = os.path.join(args.out_path, "%s.txt" % cur_content_file_basename)
             shutil.copy(cur_anno_path, cur_anno_out_path)
@@ -265,3 +275,4 @@ def process_neural_style_transfer(args):
 if __name__ == "__main__":
     args = get_args()
     process_neural_style_transfer(args)
+
