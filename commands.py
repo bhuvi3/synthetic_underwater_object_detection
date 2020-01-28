@@ -11,6 +11,11 @@ jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
 
 docker cp path_in_local a0bb7eeed020:/projects/
 
+
+# GPU real-time monitor.
+watch -n0.1 nvidia-smi
+
+
 # All scripts run from the code directory.
 
 ### Create data.
@@ -76,9 +81,88 @@ for label_file in label_files:
     shutil.copy(label_file, os.path.join("darknet_images_labels", os.path.basename(label_file)))
 
 
-# Running NST on resized images.
-python neural_style_transfer.py --content-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels --style-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/unsplash_underwater_collection --out-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-NST --grayscale --max-dim 256 &> ../logs/nst_run-resized.log
+# Converting color images to greyscale in a directory.
+from PIL import Image
+
+import glob
+import os
+import shutil
+
+def _convert_greyscale_dir(src_dir, dest_dir):
+    os.makedirs(dest_dir)
+    src_images = glob.glob(os.path.join(src_dir, "*.jpg"))
+    for src_img in src_images:
+        img = Image.open(src_img).convert('L')
+        img.save(os.path.join(dest_dir, os.path.basename(src_img)))
+
+# Convert the source unsplash images to greyscale, and convert the rendered images (unsplash_mine_raw/darknet_images_labels).
+_convert_greyscale_dir("/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/unsplash_underwater_collection",
+                       "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/unsplash_underwater_collection-gray")
+
+
+_convert_greyscale_dir("/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels",
+                       "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-gray")
+
+
+label_files = glob.glob("/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels/*.txt")
+for label_file in label_files:
+    shutil.copy(label_file, os.path.join("/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-gray", os.path.basename(label_file)))
+
+
+
+_convert_greyscale_dir("/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-sample",
+                       "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-sample-gray")
+
+label_files = glob.glob("/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-sample/*.txt")
+for label_file in label_files:
+    shutil.copy(label_file, os.path.join("/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-sample-gray", os.path.basename(label_file)))
+
+
 
 
 # Runnning NST on sample dataset.
 python neural_style_transfer.py --content-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-sample --style-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/unsplash_underwater_collection --out-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-sample-NST --grayscale --max-dim 256 &> ../logs/nst_run-sample.log
+
+
+python neural_style_transfer.py --content-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-sample-gray --style-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/unsplash_underwater_collection-gray --out-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-sample-gray-NST --max-dim 256 &> ../logs/nst_run-sample_gray.log
+
+
+# Running NST on resized images.
+python neural_style_transfer.py --content-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels --style-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/unsplash_underwater_collection --out-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-NST --grayscale --max-dim 256 &> ../logs/nst_run-resized.log
+
+# Renaming files:
+sample files moved to sample_files directory.
+"darknet_images_labels" has been changed to "synthetic".
+
+python neural_style_transfer.py --content-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray --style-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/unsplash_underwater_collection-gray --out-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray-NST --max-dim 256 &> ../logs/nst_run-resized-gray.log
+
+
+# Custom dataset links:
+http://groups.csail.mit.edu/vision/SUN/
+Brackish
+Project Natick
+https://www.researchgate.net/post/Can_anybody_help_me_find_some_underwater_image_or_video_data_set3 # this has many links
+
+
+### Preparing Yolo Darknet files:
+# Color B1: synthetic
+python darknet_dataset_creator.py --dataset-name synthetic --data-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic --classes mine --out-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic
+
+# Color M1: synthetic-NST
+python darknet_dataset_creator.py --dataset-name synthetic-NST --data-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-NST --classes mine --out-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST
+
+# Gray B2: synthetic-gray
+python darknet_dataset_creator.py --dataset-name synthetic-gray --data-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray --classes mine --out-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray
+
+# Gray M2.1: synthetic-gray-NST
+python darknet_dataset_creator.py --dataset-name synthetic-gray-NST --data-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray-NST --classes mine --out-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray-NST
+
+# Gray M2.1: synthetic-NST-gray
+python darknet_dataset_creator.py --dataset-name synthetic-NST-gray --data-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-NST-gray --classes mine --out-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST-gray
+
+
+### Running Yolo training.
+
+
+### Evaluating trained Yolo models.
+

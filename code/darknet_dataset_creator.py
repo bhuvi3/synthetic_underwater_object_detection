@@ -25,7 +25,7 @@ def get_args():
     parser.add_argument('--data-dir',
                         required=True,
                         help="The path to the directory containing darknet dataset where the images and label files"
-                             "are present in a folder named 'darknet_images_labels'.")
+                             "are present.")
     parser.add_argument('--classes',
                         required=True,
                         help="The names of the classes as a comma-separated string.")
