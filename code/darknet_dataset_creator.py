@@ -91,7 +91,7 @@ def create_darknet_training_files(dataset_name, data_dir, classes, val_split, ou
     with open(data_file_path, "w") as data_fp:
         data_fp.write("classes=%s\n" % len(classes))
         data_fp.write("train=%s\n" % os.path.abspath(train_file_path))
-        data_fp.write("val=%s\n" % os.path.abspath(val_file_path))
+        data_fp.write("valid=%s\n" % os.path.abspath(val_file_path))
         data_fp.write("names=%s\n" % os.path.abspath(names_file_path))
         data_fp.write("backup=%s\n" % os.path.abspath(backup_dir_path))
 

@@ -162,7 +162,16 @@ python darknet_dataset_creator.py --dataset-name synthetic-NST-gray --data-dir /
 
 
 ### Running Yolo training.
+# Image sizes in all the above datasets.
+num_images: 984, train: 788, val: 196
+height: 256, width: 192
+batch_size: 64
+steps_per_epoch: 13
+update classes and filters.
+
+# Run from code directory.
+# Train Color M1: synthetic
+/home/bhuvan/Projects/darknet/darknet detector train /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic/synthetic.data /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/yolov3-wells.cfg /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/darknet53.conv.74
 
 
 ### Evaluating trained Yolo models.
-
