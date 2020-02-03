@@ -186,4 +186,124 @@ update classes and filters.
 # Gray M2.1: synthetic-NST-gray
 /home/bhuvan/Projects/darknet/darknet detector train /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST-gray/synthetic-NST-gray.data /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/yolov3-wells.cfg /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/darknet53.conv.74 &> /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST-gray/yolo_training.log
 
+
+# Check the average loss in the last epoch:
+less /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic/yolo_training.log | tail -1
+
+less /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST/yolo_training.log | tail -1
+
+less /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/yolo_training.log | tail -1
+
+less /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray-NST/yolo_training.log | tail -1
+
+less /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST-gray/yolo_training.log | tail -1
+
+
 ### Evaluating trained Yolo models.
+# Run from darknet folder.
+
+### Test running detection.
+./darknet detector test /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic/synthetic.data /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/yolov3-wells.cfg /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic/darknet_backup/yolov3-wells_final.weights /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic/adam-eperjesi-et7JPPrMtIw-unsplash-401.jpg
+
+### Ground Truth Data Organization:
+# Resize test images.
+from PIL import Image
+import glob
+import os
+import shutil
+
+def resize_retain_aspect_ratio(src_dir, dest_dir, max_x_shape=256, max_y_shape=256, img_ext="png"):
+    os.makedirs(dest_dir)
+    size = max_x_shape, max_y_shape
+    input_images = glob.glob(os.path.join(src_dir, "*.%s" % img_ext))
+    for infile in input_images:
+        im = Image.open(infile)
+        im.thumbnail(size, Image.ANTIALIAS)
+        outfile = os.path.join(dest_dir, os.path.basename(infile))
+        im.save(outfile, img_ext)
+
+    print("The images have been resized in the dest_dir: %s" % dest_dir)
+
+
+resize_retain_aspect_ratio("/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mitchell_water_mine/darknet/mine_images_orig",
+                           "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mitchell_water_mine/darknet/mine_images",
+                           max_x_shape=256, max_y_shape=256, img_ext="png")
+
+
+# Convert label format to VOC - [<class_name> <left> <top> <right> <bottom> [<difficult>]] format, from Yolo format - [center_x, center_y, width, height] (relative to image width and height).
+
+from skimage import io
+
+import glob
+import os
+
+def convert_yolo_to_voc_bbox_format(src_dir, dest_dir, src_images_dir, img_ext="png", class_map=None, add_one=True):
+    def _convert_line(yolo_format_line, image_file):
+        img = io.imread(image_file)
+        img_w = img.shape[1]
+        img_h = img.shape[0]
+
+        toks = yolo_format_line.split(" ")
+        class_name = toks[0]
+        if class_map:
+            class_name = class_map[class_name]
+
+        b_x = float(toks[1])
+        b_y = float(toks[2])
+        b_w = float(toks[3])
+        b_h = float(toks[4])
+
+        # Refer to conversion code from 
+        # - https://github.com/Cartucho/mAP/blob/master/scripts/extra/convert_gt_yolo.py#L15
+        # - https://github.com/pjreddie/darknet/blob/810d7f797bdb2f021dbe65d2524c2ff6b8ab5c8b/src/image.c#L283-L291
+        left  = int((b_x-b_w/2.) * img_w)
+        right = int((b_x+b_w/2.) * img_w)
+        top   = int((b_y-b_h/2.) * img_h)
+        bot   = int((b_y+b_h/2.) * img_h)
+
+        if left < 0:
+            left = 0
+        if right > img_w-1:
+            right = img_w-1
+        if top < 0:
+            top = 0
+        if bot > img_h-1:
+            bot = img_h-1
+
+        # In the official VOC challenge the top-left pixel in the image has coordinates (1;1)
+        if add_one:
+            left += 1
+            right += 1
+            top +=1
+            bot += 1
+
+        voc_format_line = " ".join(map(str, [class_name, left, top, right, bot]))
+        print("New voc_format_line is: %s" % voc_format_line)
+        return voc_format_line
+
+    os.makedirs(dest_dir)
+
+    input_labels = glob.glob(os.path.join(src_dir, "*.txt"))
+    for infile in input_labels:
+        outfile = os.path.join(dest_dir, os.path.basename(infile))
+        with open(outfile, "w") as out_fp:
+            with open(infile) as in_fp:
+                for line in in_fp:
+                    cur_img_name = "%s.%s" % (os.path.splitext(os.path.basename(infile))[0], img_ext)
+                    cur_img_file = os.path.join(src_images_dir, cur_img_name)
+                    if not os.path.exists(cur_img_file):
+                        raise ValueError("The correct image not found: %s" % cur_img_file)
+
+                    converted_line = _convert_line(line.strip(), cur_img_file)
+                    out_fp.write("%s\n" % converted_line)
+
+    print("The labels have been converted in the dest_dir: %s" % dest_dir)
+
+
+convert_yolo_to_voc_bbox_format("/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mitchell_water_mine/darknet/mine_labels_orig",
+                                "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mitchell_water_mine/darknet/mine_labels",
+                                "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mitchell_water_mine/darknet/mine_images",
+                                img_ext="png",
+                                class_map={"0": "mine"},
+                                add_one=True)
+
