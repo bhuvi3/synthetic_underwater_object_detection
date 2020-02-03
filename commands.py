@@ -307,3 +307,8 @@ convert_yolo_to_voc_bbox_format("/home/bhuvan/Projects/underwater_synthetic_imag
                                 class_map={"0": "mine"},
                                 add_one=True)
 
+### Testing and Evaluating Trained Yolo Models.
+# Get the Yolo detections: run_yolo_detector.py.
+
+# Run mAP evaluation script:
+https://github.com/Cartucho/mAP
