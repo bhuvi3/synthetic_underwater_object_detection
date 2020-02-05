@@ -88,7 +88,6 @@ def _convert_pred_line(yolo_format_line, image_file, class_map=None, add_one=Tru
         bot += 1
 
     voc_format_line = " ".join(map(str, [class_name, confidence, left, top, right, bot]))
-    print("New voc_format_line is: %s" % voc_format_line)
     return voc_format_line
 
 
@@ -126,7 +125,7 @@ def run_darknet_detector(test_image_path,
             flag = False
             for line in fp:
                 if not flag:
-                    if line.strip().startswith("%s: Predicted" % os.path.basename(test_image_path)):
+                    if line.strip().startswith("%s: Predicted" % test_image_path):
                         flag = True
                 else:
                     cur_confidence_score = str(float(re.split(r"\s+", line.strip())[1].strip("%")) / 100)

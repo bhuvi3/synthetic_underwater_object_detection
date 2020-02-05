@@ -203,7 +203,7 @@ less /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_d
 # Run from darknet folder.
 
 ### Test running detection.
-./darknet detector test /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic/synthetic.data /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/yolov3-wells.cfg /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic/darknet_backup/yolov3-wells_final.weights /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic/adam-eperjesi-et7JPPrMtIw-unsplash-401.jpg
+./darknet detector test /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic/synthetic.data /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/yolov3-wells.cfg /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic/darknet_backup/yolov3-wells_final.weights -dont_show -ext_output -save_labels -thresh 0.01 adam-eperjesi-et7JPPrMtIw-unsplash-401.jpg
 
 ### Ground Truth Data Organization:
 # Resize test images.
@@ -304,11 +304,27 @@ convert_yolo_to_voc_bbox_format("/home/bhuvan/Projects/underwater_synthetic_imag
                                 "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mitchell_water_mine/darknet/mine_labels",
                                 "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mitchell_water_mine/darknet/mine_images",
                                 img_ext="png",
-                                class_map={"0": "mine"},
+                                class_map={"0": "0"},  # {"0": "mine"} previous run.
                                 add_one=True)
 
 ### Testing and Evaluating Trained Yolo Models.
 # Get the Yolo detections: run_yolo_detector.py.
 
-# Run mAP evaluation script:
+# Test the script: run_yolo_detector.py
+python run_yolo_detector.py --input-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/test_detector/input_images --yolo-config-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/yolov3-wells.cfg --yolo-data-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST/synthetic-NST.data --yolo-weights-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST/darknet_backup/yolov3-wells_final.weights --output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/test_detector/detector_output --image-ext jpg
+
+# Get mAP evaluation script:
 https://github.com/Cartucho/mAP
+
+# Test evaluation script.
+convert_yolo_to_voc_bbox_format("/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/test_detector/detector_output/ground_truth_files-yolo",
+                                "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/test_detector/detector_output/ground_truth_files-voc",
+                                "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/test_detector/detector_output/test_images_detected_labels",
+                                img_ext="jpg",
+                                class_map={"0": "0"},
+                                add_one=True)
+
+python evaluate_detections.py --gt-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/test_detector/detector_output/ground_truth_files-voc --dr-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/test_detector/detector_output/preds_voc_format --images-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/test_detector/detector_output/test_images_detected_labels --output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/test_detector/detector_output/evaluation --image-ext jpg
+
+
+# Run yolo detection and evaluations on mine test set from all 5 models.
