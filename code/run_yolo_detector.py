@@ -197,8 +197,7 @@ def run_yolo_detections(input_dir, yolo_config_path, yolo_data_path, yolo_weight
     count = 0
     for input_image in input_image_files:
         count += 1
-        if count % 100 == 0:
-            print("Processed %s/%s test images." % (count, num_test_images))
+        print("Processing test image: %s/%s" % (count, num_test_images))
 
         raw_output_file = os.path.join(raw_output_dir, "%s.log" % os.path.splitext(os.path.basename(input_image))[0])
         yolo_pred_file = os.path.join(out_yolo_format_preds_dir,
