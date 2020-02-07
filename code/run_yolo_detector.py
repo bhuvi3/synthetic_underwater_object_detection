@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 
 DARKNET_DIR_PATH = "/home/bhuvan/Projects/darknet_AlexeyAB"
 
@@ -192,6 +193,7 @@ def run_yolo_detections(input_dir, yolo_config_path, yolo_data_path, yolo_weight
     shutil.copytree(input_dir, out_test_images_dir)
 
     print("Started Yolo Detections.")
+    start_time = time.time()
     input_image_files = glob.glob(os.path.join(out_test_images_dir, "*.%s" % image_ext))
     num_test_images = len(input_image_files)
     count = 0
@@ -222,7 +224,10 @@ def run_yolo_detections(input_dir, yolo_config_path, yolo_data_path, yolo_weight
                 for line in cur_pred_lines:
                     fp.write("%s\n" % line)
 
-    print("Processed %s test images, and the outputs have been written to %s" % (num_test_images, output_dir))
+    end_time = time.time()
+    time_taken = end_time - start_time
+    print("Processed %s test images in %s seconds, and the outputs have been written to %s"
+          % (num_test_images, time_taken, output_dir))
 
 
 if __name__ == "__main__":
