@@ -356,3 +356,51 @@ python evaluate_detections.py --gt-dir /home/bhuvan/Projects/underwater_syntheti
 python run_yolo_detector.py --input-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/mine_images --yolo-config-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/yolov3-wells.cfg --yolo-data-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST-gray/synthetic-NST-gray.data --yolo-weights-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST-gray/darknet_backup/yolov3-wells_final.weights --output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST-gray/mine_test_data-mono_detector_output --image-ext png &> /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST-gray/mine_test_data-mono_detector_output.log
 
 python evaluate_detections.py --gt-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/mine_labels --dr-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST-gray/mine_test_data-mono_detector_output/preds_voc_format --images-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST-gray/mine_test_data-mono_detector_output/test_images_detected_labels --output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-NST-gray/mine_test_data-mono_detector_output/evaluation --image-ext png
+
+
+### Next questions to address:
+# How does adding x/2, x amount of in-situ background images into the pipeline help in improving the performance?
+# How does resizing the image to 512 instead 256 affect the performance?
+# How does their performance compare on color test images? [can we do this for Mines? Maybe I can collect some data if needed, as it allows us to compare the same models, making it easy to compare and learn]
+# Maybe write a paper or poster on it.
+
+# ---------------------------------------------------
+### Automating the pipeline.
+
+# Script to run end to end model, where background images are input, along with the pretrained weights to be considered for Yolo, and an output directory where all the results would be written.
+# Steps of this pipeline.
+- Step 1:
+# Create Synthetic data by rendering the object on the background images: input orignal size images, and the .egg file for object 3d model, and number fof scenes need (have some margin which we might have to ignore).
+python run_yolo_data_renderer.py --background-dir ../data/underwater_background/unsplash/unsplash_underwater_collection --object-model-file ../panda3d_models/mine.egg --num-scenes 1000 --out-dir ../data/darknet_datasets/unsplash_mine_raw/darknet_images_labels --max-objects 2
+
+
+- Step 2:
+# Resize the images to 256, and convert grayscale version copy of the rendered data.
+# Convert the input background images also to grayscale as a copy.
+
+- Step 3
+# Run NST on 2 datasets (on color and on grayscale). Same command shown for grayscale.
+python neural_style_transfer.py --content-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray --style-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/unsplash_underwater_collection-gray --out-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray-NST --max-dim 256 &> ../logs/nst_run-resized-gray.log
+
+- Step 4:
+# Create darknet datasets format: 5 models
+python darknet_dataset_creator.py --dataset-name synthetic-gray --data-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray --classes mine --out-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray
+
+- Step 5:
+# Run darknet yolo training: 5 models
+/home/bhuvan/Projects/darknet/darknet detector train /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/synthetic-gray.data /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/yolov3-wells.cfg /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/darknet53.conv.74 &> /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/yolo_training.log
+
+<log the validation loss: less /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/yolo_training.log | tail -1>
+
+#-----
+# Testing: Assuming that the testbed data is organized correctly.
+# It requires resizing, and voc-format labels instead of yolo format labels.
+- Step 6:
+# Run detections on the testbed: 5 models.
+python run_yolo_detector.py --input-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/mine_images --yolo-config-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/yolov3-wells.cfg --yolo-data-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/synthetic-gray.data --yolo-weights-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/darknet_backup/yolov3-wells_final.weights --output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/mine_test_data-mono_detector_output --image-ext png &> /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/mine_test_data-mono_detector_output.log
+
+- Step 7:
+# Run evaluation on the testbed: 5 models.
+python evaluate_detections.py --gt-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/mine_labels --dr-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/mine_test_data-mono_detector_output/preds_voc_format --images-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/mine_test_data-mono_detector_output/test_images_detected_labels --output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/mine_test_data-mono_detector_output/evaluation --image-ext png
+
+# Script for running the above 7 steps.
