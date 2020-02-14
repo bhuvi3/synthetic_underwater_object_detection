@@ -373,6 +373,7 @@ python evaluate_detections.py --gt-dir /home/bhuvan/Projects/underwater_syntheti
 # Create Synthetic data by rendering the object on the background images: input orignal size images, and the .egg file for object 3d model, and number fof scenes need (have some margin which we might have to ignore).
 python run_yolo_data_renderer.py --background-dir ../data/underwater_background/unsplash/unsplash_underwater_collection --object-model-file ../panda3d_models/mine.egg --num-scenes 1000 --out-dir ../data/darknet_datasets/unsplash_mine_raw/darknet_images_labels --max-objects 2
 
+<resize the images rendered, but the same labels would be fine>
 
 - Step 2:
 # Resize the images to 256, and convert grayscale version copy of the rendered data.
@@ -392,6 +393,8 @@ python darknet_dataset_creator.py --dataset-name synthetic-gray --data-dir /home
 
 <log the validation loss: less /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/yolo_training.log | tail -1>
 
+<Delete the weights files except the final.weights.>
+
 #-----
 # Testing: Assuming that the testbed data is organized correctly.
 # It requires resizing, and voc-format labels instead of yolo format labels.
@@ -404,3 +407,61 @@ python run_yolo_detector.py --input-dir /home/bhuvan/Projects/underwater_synthet
 python evaluate_detections.py --gt-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/mine_labels --dr-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/mine_test_data-mono_detector_output/preds_voc_format --images-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/mine_test_data-mono_detector_output/test_images_detected_labels --output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/mine_test_data-mono_detector_output/evaluation --image-ext png
 
 # Script for running the above 7 steps.
+
+
+### Preparing insitu data consisting 250 background images, then consider the rest 105 background images in the test data.
+
+# Converted all png images to jpg images: 'mogrify -format jpg *.png && rm *.png'
+
+import glob
+import os
+import random
+import shutil
+
+src_background_images = glob.glob("/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/mine_images_orig/bg_*.jpg")
+dest_train_background_images = "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/insitu-250-gray"
+
+num_train = 250
+random.shuffle(src_background_images)
+selected_train_background_images = src_background_images[:num_train]
+
+for image in selected_train_background_images:
+    shutil.copy(image, os.path.join(dest_train_background_images, os.path.basename(image)))
+
+
+# Remove the selected images from the original test set.
+test_data_dirs = [
+    "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/mine_images",
+    "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/mine_images_orig",
+    "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/mine_labels",
+    "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/mine_labels_orig"
+]
+
+selected_basenames = list(map(lambda x: os.path.splitext(os.path.basename(x))[0], selected_train_background_images))
+
+
+for test_data_dir in test_data_dirs:
+    for selected_basename in selected_basenames:
+        cur_files = glob.glob(os.path.join(test_data_dir, "%s.*" % selected_basename))
+        assert len(cur_files) == 1
+        cur_file = cur_files[0]
+        os.remove(cur_file)
+
+# Create subsets of the train background images.
+train_background_images_dir = "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/insitu-250-gray"
+train_background_images = glob.glob(os.path.join(train_background_images_dir, "*.jpg"))
+
+dest_path_prefix = "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/insitu-"
+num_train_data_subsets = [50, 100, 150, 200]
+
+for num_train_data_subset in num_train_data_subsets:
+    cur_dest_dir = dest_path_prefix + "%s-gray" % num_train_data_subset
+    os.makedirs(cur_dest_dir)
+    random.shuffle(train_background_images)
+    cur_selected_images = train_background_images[:num_train_data_subset]
+    for cur_image in cur_selected_images:
+        shutil.copy(cur_image, os.path.join(cur_dest_dir, os.path.basename(cur_image)))
+
+
+# Test set path: /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/reduced_bg_test_set
+# Train background images: /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/insitu-<>-gray  # 50, 100, 150, 200, 250
