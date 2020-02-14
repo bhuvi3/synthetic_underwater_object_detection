@@ -74,15 +74,26 @@ def get_args():
     parser.add_argument('--out-dir',
                         required=True,
                         help="The path to the intermediate files, trained models and evaluations need to be written.")
+    parser.add_argument('--gt-images-dir',
+                        required=True,
+                        help="The path to the directory containing ground-truth images.")
+    parser.add_argument('--gt-labels-dir',
+                        required=True,
+                        help="The path to the directory containing ground-truth labels.")
 
     args = parser.parse_args()
 
     return args
 
 
-def run_cmd(cmd_list, log_file, check_success=True):
-    start_time = time.time()
+def run_cmd(cmd_list, log_file, check_success=True, no_write=False):
     cmd_list = list(map(str, cmd_list))
+
+    if no_write:
+        print("\n(no-write) Would run command: %s" % " ".join(cmd_list))
+        return
+
+    start_time = time.time()
     with open(log_file, "w") as log_file_fp:
         print("\nRunning command: %s" % " ".join(cmd_list))
         error_status = subprocess.run(cmd_list, stdout=log_file_fp, stderr=log_file_fp)
@@ -135,11 +146,18 @@ def run_synthetic_data_training(background_dir,
                                 pretrained_weights,
                                 image_size,
                                 image_ext,
-                                out_dir):
+                                out_dir,
+                                gt_images_dir,
+                                gt_labels_dir):
     def _create_abd_get_sub_out_dir(sub_dir_name):
         new_path = os.path.join(out_dir, sub_dir_name)
         os.makedirs(new_path)
         return new_path
+
+    def _delete_intermediate_weights_files(weights_dir):
+        intermediate_weights_files = glob.glob(os.path.join(weights_dir, "*0.weights"))
+        for cur_weights_file in intermediate_weights_files:
+            os.remove(cur_weights_file)
 
     # Create output directories.
     os.makedirs(out_dir)
@@ -229,14 +247,53 @@ def run_synthetic_data_training(background_dir,
         run_cmd(cmd_list, cur_yolo_log_file, check_success=True)
         print("Check the validation loss of the trained yolo model (%s) from the logs: %s"
               % (data_format, cur_yolo_log_file))
-        print("Delete the intermediate weight files to save disk memory from the backup dir: %s"
+        print("Deleting the intermediate weight files to save disk memory from the backup dir: %s"
               % os.path.join(meta_dict[data_format]["darknet_dataset_path"], "darknet_backup"))
+        _delete_intermediate_weights_files(os.path.join(meta_dict[data_format]["darknet_dataset_path"], "darknet_backup"))
 
     print("\n# Training Stage Complete.")
 
+    # Step 6: Run Yolo detector on the test set.
+    print("\n# Step 6.")
+    for data_format in data_formats:
+        cmd_list = [
+            PYTHON,
+            os.path.join(CODE_DIR, "run_yolo_detector.py"),
+            "--input-dir", gt_images_dir,
+            "--yolo-config-path", yolo_config,
+            "--yolo-data-path", os.path.join(meta_dict[data_format]["darknet_dataset_path"],
+                                             "%s.data" % meta_dict[data_format]["dataset_name"]),
+            "--yolo-weights-path", os.path.join(meta_dict[data_format]["darknet_dataset_path"],
+                                                "darknet_backup"
+                                                "%s_final.weights" % os.path.splitext(os.path.basename(yolo_config))[0]),
+            "--output-dir", os.path.join(meta_dict[data_format]["darknet_dataset_path"], "testset_detector_output"),
+            "--image-ext", image_ext
+        ]
+        cur_detector_log_file = os.path.join(meta_dict[data_format]["darknet_dataset_path"], "testset_detector_output.log")
+        run_cmd(cmd_list, cur_detector_log_file, check_success=True)
 
-def run_testbed_analysis():
-    pass
+    # Step 7: Evaluate and compute mean Average Precision.
+    print("\n# Step 7.")
+    for data_format in data_formats:
+        cmd_list = [
+            PYTHON,
+            os.path.join(CODE_DIR, "evaluate_detections.py"),
+            "--gt-dir", gt_labels_dir,
+            "--dr-dir", os.path.join(meta_dict[data_format]["darknet_dataset_path"],
+                                     "testset_detector_output",
+                                     "preds_voc_format"),
+            "--images-dir", os.path.join(meta_dict[data_format]["darknet_dataset_path"],
+                                         "testset_detector_output",
+                                         "test_images_detected_labels"),
+            "--output-dir", os.path.join(meta_dict[data_format]["darknet_dataset_path"],
+                                         "testset_detector_output",
+                                         "evaluation"),
+            "--image-ext", image_ext
+        ]
+        cur_evaluation_log_file = os.path.join(meta_dict[data_format]["darknet_dataset_path"], "testset_evaluation.log")
+        run_cmd(cmd_list, cur_evaluation_log_file, check_success=True)
+
+    print("\n# Evaluation Stage Complete")
 
 
 if __name__ == "__main__":
@@ -253,8 +310,7 @@ if __name__ == "__main__":
         args.pretrained_weights,
         args.image_size,
         args.image_ext,
-        args.out_dir
+        args.out_dir,
+        args.gt_images_dir,
+        args.gt_labels_dir
     )
-
-    # Run yolo detector and evaluate on the testset provided.
-    run_testbed_analysis()
