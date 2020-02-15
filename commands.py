@@ -465,3 +465,9 @@ for num_train_data_subset in num_train_data_subsets:
 
 # Test set path: /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/reduced_bg_test_set
 # Train background images: /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/insitu-<>-gray  # 50, 100, 150, 200, 250
+
+### Run the Automated Pipeline.
+# Test sample.
+python run_synthetic_data_training_and_evaluation.py --background-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/insitu/insitu-50-gray --is-grayscale --object-model-file /home/bhuvan/Projects/underwater_synthetic_image_recognition/panda3d_models/mine.egg --classes mine --num-train-scenes 50 --max-objects 2 --pretrained-weights /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/yolo_training_files/synthetic-gray/darknet_backup/yolov3-wells_final.weights --image-size 256 --image-ext jpg --gt-images-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/reduced_bg_test_set/mine_images --gt-labels-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/reduced_bg_test_set/mine_labels --out-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray
+
+# Error: not training. TODO: Copy the cfg file and add 10000 more steps to it.
