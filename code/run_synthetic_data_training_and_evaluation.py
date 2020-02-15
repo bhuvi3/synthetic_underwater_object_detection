@@ -43,6 +43,9 @@ def get_args():
     parser.add_argument('--object-model-file',
                         required=True,
                         help="The path to the Panda3d object 3d-model file (.egg).")
+    parser.add_argument('--classes',
+                        required=True,
+                        help="The names of the classes as a comma-separated string.")
     parser.add_argument('--num-train-scenes',
                         type=int,
                         required=True,
@@ -80,6 +83,9 @@ def get_args():
     parser.add_argument('--gt-labels-dir',
                         required=True,
                         help="The path to the directory containing ground-truth labels.")
+    parser.add_argument('--exist-ok',
+                        action="store_true",
+                        help="Specify if it is ok to overwrite on existing output directories. Default: False.")
 
     args = parser.parse_args()
 
@@ -95,7 +101,7 @@ def run_cmd(cmd_list, log_file, check_success=True, no_write=False):
 
     start_time = time.time()
     with open(log_file, "w") as log_file_fp:
-        print("\nRunning command: %s" % " ".join(cmd_list))
+        print("\nRunning command: %s\nlogging to: %s" % (" ".join(cmd_list), log_file))
         error_status = subprocess.run(cmd_list, stdout=log_file_fp, stderr=log_file_fp)
 
     if check_success and error_status.returncode != 0:
@@ -104,21 +110,26 @@ def run_cmd(cmd_list, log_file, check_success=True, no_write=False):
     print("Command completed: %s seconds." % (time.time() - start_time))
 
 
-def resize_retain_aspect_ratio(src_dir, dest_dir, max_x_shape=256, max_y_shape=256, img_ext="jpg"):
-    os.makedirs(dest_dir)
+def resize_retain_aspect_ratio(src_dir, dest_dir, max_x_shape=256, max_y_shape=256, img_ext="jpg", exist_ok=False):
+    if img_ext.lower() == "jpg":
+        img_format = "JPEG"
+    else:
+        img_format = img_ext.upper()
+
+    os.makedirs(dest_dir, exist_ok=exist_ok)
     size = max_x_shape, max_y_shape
     input_images = glob.glob(os.path.join(src_dir, "*.%s" % img_ext))
     for infile in input_images:
         im = Image.open(infile)
         im.thumbnail(size, Image.ANTIALIAS)
         outfile = os.path.join(dest_dir, os.path.basename(infile))
-        im.save(outfile, img_ext)
+        im.save(outfile, img_format)
 
     print("The images have been resized in the dest_dir: %s" % dest_dir)
 
 
-def convert_greyscale_dir(src_dir, dest_dir, image_ext="jpg"):
-    os.makedirs(dest_dir)
+def convert_greyscale_dir(src_dir, dest_dir, image_ext="jpg", exist_ok=False):
+    os.makedirs(dest_dir, exist_ok=exist_ok)
     src_images = glob.glob(os.path.join(src_dir, "*.%s" % image_ext))
     for src_img in src_images:
         img = Image.open(src_img).convert('L')
@@ -128,7 +139,7 @@ def convert_greyscale_dir(src_dir, dest_dir, image_ext="jpg"):
 
 
 def copy_label_files(src_dir, dest_dir, image_ext="jpg", label_ext="txt"):
-    dest_images = glob.glob(os.path.join(dest_dir, ".%s" % image_ext))
+    dest_images = glob.glob(os.path.join(dest_dir, "*.%s" % image_ext))
     label_names = list(map(lambda x: os.path.splitext(os.path.basename(x))[0], dest_images))
     for label_name in label_names:
         shutil.copy(os.path.join(src_dir,  "%s.%s" % (label_name, label_ext)),
@@ -140,6 +151,7 @@ def copy_label_files(src_dir, dest_dir, image_ext="jpg", label_ext="txt"):
 def run_synthetic_data_training(background_dir,
                                 is_grayscale,
                                 object_model_file,
+                                classes,
                                 num_train_scenes,
                                 max_objects,
                                 yolo_config,
@@ -148,10 +160,11 @@ def run_synthetic_data_training(background_dir,
                                 image_ext,
                                 out_dir,
                                 gt_images_dir,
-                                gt_labels_dir):
-    def _create_abd_get_sub_out_dir(sub_dir_name):
+                                gt_labels_dir,
+                                exist_ok):
+    def _create_and_get_sub_out_dir(sub_dir_name):
         new_path = os.path.join(out_dir, sub_dir_name)
-        os.makedirs(new_path)
+        os.makedirs(new_path, exist_ok=exist_ok)
         return new_path
 
     def _delete_intermediate_weights_files(weights_dir):
@@ -160,9 +173,9 @@ def run_synthetic_data_training(background_dir,
             os.remove(cur_weights_file)
 
     # Create output directories.
-    os.makedirs(out_dir)
-    logs_dir = _create_abd_get_sub_out_dir("logs")
-    rendered_data_dir = _create_abd_get_sub_out_dir("rendered_images")
+    os.makedirs(out_dir, exist_ok=exist_ok)
+    logs_dir = _create_and_get_sub_out_dir("logs")
+    rendered_data_dir = _create_and_get_sub_out_dir("rendered_images")
 
     # Create a meta dict which holds the information of both synthetic and NST version.
     meta_dict = {"synthetic": {}, "nst": {}}
@@ -189,16 +202,17 @@ def run_synthetic_data_training(background_dir,
                                resized_rendered_dir,
                                max_x_shape=image_size,
                                max_y_shape=image_size,
-                               img_ext=image_ext)
-    copy_label_files(full_size_rendered_dir, resized_rendered_dir, image_ext="jpg", label_ext="txt")
+                               img_ext=image_ext,
+                               exist_ok=exist_ok)
+    copy_label_files(full_size_rendered_dir, resized_rendered_dir, image_ext=image_ext, label_ext="txt")
 
     if not is_grayscale:
         meta_dict["synthetic"]["dataset_name"] = "synthetic"
         meta_dict["synthetic"]["data_dir"] = resized_rendered_dir
     else:
         resized_rendered_grayscale_dir = os.path.join(rendered_data_dir, "synthetic-gray")
-        convert_greyscale_dir(resized_rendered_dir, resized_rendered_grayscale_dir, image_ext="jpg")
-        copy_label_files(resized_rendered_dir, resized_rendered_grayscale_dir, image_ext="jpg", label_ext="txt")
+        convert_greyscale_dir(resized_rendered_dir, resized_rendered_grayscale_dir, image_ext="jpg", exist_ok=exist_ok)
+        copy_label_files(resized_rendered_dir, resized_rendered_grayscale_dir, image_ext=image_ext, label_ext="txt")
 
         meta_dict["synthetic"]["dataset_name"] = "synthetic-gray"
         meta_dict["synthetic"]["data_dir"] = resized_rendered_grayscale_dir
@@ -221,7 +235,7 @@ def run_synthetic_data_training(background_dir,
 
     # Step 4: Create Yolo training files in the darknet dataset format, for each data_format.
     print("\n# Step 4.")
-    yolo_training_dir = _create_abd_get_sub_out_dir("yolo_training_files")
+    yolo_training_dir = _create_and_get_sub_out_dir("yolo_training_files")
     for data_format in data_formats:
         meta_dict[data_format]["darknet_dataset_path"] = os.path.join(yolo_training_dir,
                                                                       meta_dict[data_format]["dataset_name"])
@@ -229,6 +243,7 @@ def run_synthetic_data_training(background_dir,
             PYTHON,
             os.path.join(CODE_DIR, "darknet_dataset_creator.py"),
             "--dataset-name", meta_dict[data_format]["dataset_name"],
+            "--classes", classes,
             "--data-dir", meta_dict[data_format]["data_dir"],
             "--out-dir", meta_dict[data_format]["darknet_dataset_path"]
         ]
@@ -264,7 +279,7 @@ def run_synthetic_data_training(background_dir,
             "--yolo-data-path", os.path.join(meta_dict[data_format]["darknet_dataset_path"],
                                              "%s.data" % meta_dict[data_format]["dataset_name"]),
             "--yolo-weights-path", os.path.join(meta_dict[data_format]["darknet_dataset_path"],
-                                                "darknet_backup"
+                                                "darknet_backup",
                                                 "%s_final.weights" % os.path.splitext(os.path.basename(yolo_config))[0]),
             "--output-dir", os.path.join(meta_dict[data_format]["darknet_dataset_path"], "testset_detector_output"),
             "--image-ext", image_ext
@@ -304,6 +319,7 @@ if __name__ == "__main__":
         args.background_dir,
         args.is_grayscale,
         args.object_model_file,
+        args.classes,
         args.num_train_scenes,
         args.max_objects,
         args.yolo_config,
@@ -312,5 +328,6 @@ if __name__ == "__main__":
         args.image_ext,
         args.out_dir,
         args.gt_images_dir,
-        args.gt_labels_dir
+        args.gt_labels_dir,
+        args.exist_ok
     )
