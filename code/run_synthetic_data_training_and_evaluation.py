@@ -58,13 +58,19 @@ def get_args():
                         default=DEFAULT_DARKNET_YOLO_CONFIG,
                         help="The path to the darknet YoloV3 config file."
                              "The training will be initialized with these weights. "
-                             "Note that the image-size in the config file needs to match the image-size used here."
+                             "Note that the image-size in the config file needs to match the image-size used here. "
+                             "Ensure that the 'steps' are provided by considering the 'pretrained-weights' file, "
+                             "as described in the documentation of the 'pretrained-weights' argument. "
                              "Default: 'darknet53.conv.74' weights file from Darknet website would be used.")
     parser.add_argument('--pretrained-weights',
                         default=DEFAULT_DARKNET_WEIGHTS_FILE,
                         help="The path to the file containing the weights of trained YoloV3 (53) model (Darknet)."
                              "The training will be initialized with these weights, hence the Yolo config file must "
                              "define the same model architecture as the model which was used to produce these weights. "
+                             "Ensure that the 'steps' param in the yolo-config is set such that it considers the "
+                             "pretrained-steps. For instance, if the pretrained-weights were obtained after 15000 "
+                             "steps of training, and 10000 steps of training needs to be performed in this run, "
+                             "then set the 'steps' to 25000 in the provided 'yolo-config'. "
                              "Default: 'darknet53.conv.74' weights file from Darknet website would be used.")
     parser.add_argument('--image-size',
                         type=int,
