@@ -11,6 +11,7 @@ from PIL import Image
 
 import argparse
 import glob
+import json
 import os
 import shutil
 import subprocess
@@ -54,6 +55,14 @@ def get_args():
                         type=int,
                         default=2,
                         help="The maximum number of objects to be rendered on a scene.")
+    parser.add_argument('--previous-data',
+                        default=None,
+                        help="A JSON string containing the directory path for each 'data_format' from which "
+                             "all the files would be copied to the data directory for the current run. "
+                             "This helps to train by including the data from the previous runs."
+                             "The supported 'data_format' are: ['synthetic', 'nst']. "
+                             "Default: If a 'data_format' doesn't have a directory path mapping, then previous data "
+                             "copying for that 'data_format' would be skipped.")
     parser.add_argument('--yolo-config',
                         default=DEFAULT_DARKNET_YOLO_CONFIG,
                         help="The path to the darknet YoloV3 config file."
@@ -160,6 +169,7 @@ def run_synthetic_data_training(background_dir,
                                 classes,
                                 num_train_scenes,
                                 max_objects,
+                                previous_data,
                                 yolo_config,
                                 pretrained_weights,
                                 image_size,
@@ -185,7 +195,8 @@ def run_synthetic_data_training(background_dir,
 
     # Create a meta dict which holds the information of both synthetic and NST version.
     meta_dict = {"synthetic": {}, "nst": {}}
-    data_formats = meta_dict.keys()
+    data_formats = list(meta_dict.keys())
+    print("Considering the data_formats: %s" % data_formats)
 
     # Step 1: Create Synthetic data by rendering the object on the background images (input original size images).
     print("\n# Step 1.")
@@ -241,6 +252,19 @@ def run_synthetic_data_training(background_dir,
 
     # Step 4: Create Yolo training files in the darknet dataset format, for each data_format.
     print("\n# Step 4.")
+    print("Copying previous data.")
+    previous_data_dict = json.loads(previous_data)
+    for data_format in data_formats:
+        previous_data_dir = previous_data_dict.get(data_format)  # Returns None if key not found.
+        if previous_data_dir:
+            for previous_data_file in os.listdir(previous_data_dir):
+                shutil.copy(os.path.join(previous_data_dir, previous_data_file),
+                            os.path.join(meta_dict[data_format]["data_dir"], previous_data_file))
+
+            print("Copied previous data for %s data_format from %s."
+                  % (data_format, meta_dict[data_format]["data_dir"]))
+
+    print("Creating Yolo training files as required by Darknet.")
     yolo_training_dir = _create_and_get_sub_out_dir("yolo_training_files")
     for data_format in data_formats:
         meta_dict[data_format]["darknet_dataset_path"] = os.path.join(yolo_training_dir,
@@ -328,6 +352,7 @@ if __name__ == "__main__":
         args.classes,
         args.num_train_scenes,
         args.max_objects,
+        args.previous_data,
         args.yolo_config,
         args.pretrained_weights,
         args.image_size,
