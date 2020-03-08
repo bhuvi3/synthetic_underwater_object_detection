@@ -486,9 +486,8 @@ python run_synthetic_data_training_and_evaluation.py --background-dir /home/bhuv
 
 python run_synthetic_data_training_and_evaluation.py --background-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/insitu/insitu-250-gray --is-grayscale --object-model-file /home/bhuvan/Projects/underwater_synthetic_image_recognition/panda3d_models/mine.egg --classes mine --num-train-scenes 1000 --max-objects 2 --previous-data '{"synthetic": "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray", "nst": "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray-NST"}' --image-size 256 --image-ext jpg --gt-images-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/reduced_bg_test_set/mine_images --gt-labels-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/reduced_bg_test_set/mine_labels --out-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-250-gray > /home/bhuvan/Projects/underwater_synthetic_image_recognition/logs/analysis_insitu-250-gray.log 2>&1 [COMPLETED] # Dir not perform well. Might have to retrain and check.
 
-# Failed due to improper renders. Also found that for insite-50 (for which it completed), it gave very less AUC: 34%.
-# [TODO]Infer again on test set with those zoomed-in mines removed.
 
+### Prepare and run training and evaluation for Test Set: realmine_reduced_test_set
 # Add real-mine images to train data.
 # realmine_reduced_test_set
 10 images with real-mines have been sampled out from the test-set.
@@ -513,6 +512,12 @@ TODO: Deleting the intermediate weight files to save disk memory from the backup
 TODO: Check the validation loss of the trained yolo model (nst) from the logs: /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/yolo_training.log
 TODO: Deleting the intermediate weight files to save disk memory from the backup dir: /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/darknet_backup
 
+### Prepare and run training and evaluation for Test Set: realmine_reduced_test_set_simplified
+# Remove test set with those zoomed-in mines removed. [TODO]
+# Run inference [TODO]
+
+
+# Run inference for previous models on the test set for reduced_bg_test_set, and update the results on the google sheet.
 
 
 # Test Set Mine_images dir-size
