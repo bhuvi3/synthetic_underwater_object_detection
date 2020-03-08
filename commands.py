@@ -470,7 +470,7 @@ for num_train_data_subset in num_train_data_subsets:
 # Test sample.
 python run_synthetic_data_training_and_evaluation.py --background-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/insitu/insitu-50-gray --is-grayscale --object-model-file /home/bhuvan/Projects/underwater_synthetic_image_recognition/panda3d_models/mine.egg --classes mine --num-train-scenes 4 --max-objects 2 --image-size 256 --image-ext jpg --previous-data '{"synthetic": "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray-sample", "nst": "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray-NST-sample"}' --gt-images-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/reduced_bg_test_set/mine_images --gt-labels-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/reduced_bg_test_set/mine_labels --out-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-sample
 
-# Run the end-to-end pipeline for 50, 100, 150, 200, 250 insitu images. [IN PROCESS]
+# Run the end-to-end pipeline for 50, 100, 150, 200, 250 insitu images.
 # Include the images from previous network, and start from scratch instead of pre-trained weights from synthetic backgrounds then train for full 15000 steps.
 python run_synthetic_data_training_and_evaluation.py --background-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/insitu/insitu-50-gray --is-grayscale --object-model-file /home/bhuvan/Projects/underwater_synthetic_image_recognition/panda3d_models/mine.egg --classes mine --num-train-scenes 200 --max-objects 2 --previous-data '{"synthetic": "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray", "nst": "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray-NST"}' --image-size 256 --image-ext jpg --gt-images-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/reduced_bg_test_set/mine_images --gt-labels-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/reduced_bg_test_set/mine_labels --out-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray > /home/bhuvan/Projects/underwater_synthetic_image_recognition/logs/analysis_insitu-50-gray.log 2>&1
 
@@ -487,4 +487,36 @@ python run_synthetic_data_training_and_evaluation.py --background-dir /home/bhuv
 python run_synthetic_data_training_and_evaluation.py --background-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/insitu/insitu-250-gray --is-grayscale --object-model-file /home/bhuvan/Projects/underwater_synthetic_image_recognition/panda3d_models/mine.egg --classes mine --num-train-scenes 1000 --max-objects 2 --previous-data '{"synthetic": "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray", "nst": "/home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/synthetic-gray-NST"}' --image-size 256 --image-ext jpg --gt-images-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/reduced_bg_test_set/mine_images --gt-labels-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/reduced_bg_test_set/mine_labels --out-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-250-gray > /home/bhuvan/Projects/underwater_synthetic_image_recognition/logs/analysis_insitu-250-gray.log 2>&1 [COMPLETED] # Dir not perform well. Might have to retrain and check.
 
 # Failed due to improper renders. Also found that for insite-50 (for which it completed), it gave very less AUC: 34%.
-# Infer again on test set with those zoomed-in mines removed.
+# [TODO]Infer again on test set with those zoomed-in mines removed.
+
+# Add real-mine images to train data.
+# realmine_reduced_test_set
+10 images with real-mines have been sampled out from the test-set.
+They have copied 20 times, so that there are 200 such images. This is done so that it can be compared with the insitu-50, where 200 scenes with insitu background are included in the data.
+These 200 real mine images have been put to both synthetic-gray and synthetic-gray-NST rendered images copied from analysis_insitu-50-gray to the new dir: analysis_insitu-50-gray-realmine-10.
+
+# Train Yolo models on analysis_insitu-50-gray-realmine-10, synthetic-gray and dynthetic-gray-NST.
+# Step 4: Creating Yolo training files as required by Darknet.
+python darknet_dataset_creator.py --dataset-name synthetic-gray --classes mine --data-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/rendered_images/synthetic-gray --out-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray > /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/logs/darknet_dataset_creator-synthetic.log 2>&1
+
+python darknet_dataset_creator.py --dataset-name synthetic-gray-NST --classes mine --data-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/rendered_images/synthetic-gray-NST --out-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST > /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/logs/darknet_dataset_creator-nst.log 2>&1
+
+# Step 5: Run Yolo training on Darknet.
+/home/bhuvan/Projects/darknet/darknet detector train /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/synthetic-gray.data /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/yolov3-wells.cfg /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/darknet53.conv.74 > /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/yolo_training.log 2>&1 [IN PROCESS]
+
+/home/bhuvan/Projects/darknet/darknet detector train /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/synthetic-gray-NST.data /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/yolov3-wells.cfg /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/darknet53.conv.74 > /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/yolo_training.log 2>&1 [IN PROCESS]
+
+
+TODO: Check the validation loss of the trained yolo model (synthetic) from the logs: /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/yolo_training.log
+TODO: Deleting the intermediate weight files to save disk memory from the backup dir: /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/darknet_backup
+
+TODO: Check the validation loss of the trained yolo model (nst) from the logs: /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/yolo_training.log
+TODO: Deleting the intermediate weight files to save disk memory from the backup dir: /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/darknet_backup
+
+
+
+# Test Set Mine_images dir-size
+full_orig_test_set: 610 - 1
+reduced_bg_test_set: 360 - 1
+realmine_reduced_test_set: 350 - 1
+realmine_reduced_test_set_simplified: TODO
