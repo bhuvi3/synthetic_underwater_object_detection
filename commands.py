@@ -768,4 +768,4 @@ python evaluate_detections.py \
 full_orig_test_set: 610 - 1
 realmine_reduced_test_set: 360 - 1
 realmine_reduced_test_set: 350 - 1
-realmine_reduced_test_set_simplified: TODO
+realmine_reduced_test_set_simplified: 314 - 1
