@@ -53,9 +53,6 @@ python darknet_dataset_creator.py --dataset-name unsplash_rendered_test --data-d
 # Correcting segmentation fault:
 deleted some images which did not have matching labels (5), the corrected darknet_images_labels: /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels
 
-# TODO: Review the neural_style_transfer script which is still unstaged.
-
-# TODO: Check yolo3-wells.cfg from unsplash_rendered_test
 
 # previous run:
 python neural_style_transfer.py --content-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels --style-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/underwater_background/unsplash/unsplash_underwater_collection --out-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/unsplash_mine_raw/darknet_images_labels-NST --grayscale --max-dim 256 &> nst_run2.log
@@ -653,7 +650,7 @@ python evaluate_detections.py \
 
 # ---------------------------------------------------------------------------------------------------------------------
 ### Prepare and run training and evaluation for Test Set: realmine_reduced_test_set_simplified
-# Remove test set with those zoomed-in mines removed. [TODO]
+# Remove test set with those zoomed-in mines removed.
 
 
 ## Evaluation Stage. Test set: realmine_reduced_test_set_simplified
@@ -734,15 +731,15 @@ python run_yolo_detector.py \
 --yolo-config-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/yolov3-wells.cfg \
 --yolo-data-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/synthetic-gray.data \
 --yolo-weights-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/darknet_backup/yolov3-wells_final.weights \
---output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/realmine_reduced_test_set_simplified-detector_output \
---image-ext jpg > /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/realmine_reduced_test_set_simplified-detector_output.log 2>&1
+--output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/simplified-detector_output \
+--image-ext jpg > /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/simplified-detector_output.log 2>&1
 
 python evaluate_detections.py \
 --gt-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/realmine_reduced_test_set_simplified/mine_labels \
---dr-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/realmine_reduced_test_set_simplified-detector_output/preds_voc_format \
---images-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/realmine_reduced_test_set_simplified-detector_output/test_images_detected_labels \
---output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/realmine_reduced_test_set_simplified-detector_output/evaluation \
---image-ext jpg > /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/realmine_reduced_test_set_simplified-detector_output/testset_evaluation.log 2>&1
+--dr-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/simplified-detector_output/preds_voc_format \
+--images-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/simplified-detector_output/test_images_detected_labels \
+--output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/simplified-detector_output/evaluation \
+--image-ext jpg > /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray/simplified-detector_output/testset_evaluation.log 2>&1
 
 
 - synthetic-gray-NST
@@ -751,17 +748,18 @@ python run_yolo_detector.py \
 --yolo-config-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/code/yolo_cfg/yolov3-wells.cfg \
 --yolo-data-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/synthetic-gray-NST.data \
 --yolo-weights-path /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/darknet_backup/yolov3-wells_final.weights \
---output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/realmine_reduced_test_set_simplified-detector_output \
---image-ext jpg > /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/realmine_reduced_test_set_simplified-detector_output.log 2>&1
+--output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/simplified-detector_output \
+--image-ext jpg > /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/simplified-detector_output.log 2>&1
 
 python evaluate_detections.py \
 --gt-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/water_mine/mine_test_data-mono/darknet/realmine_reduced_test_set_simplified/mine_labels \
---dr-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/realmine_reduced_test_set_simplified-detector_output/preds_voc_format \
---images-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/realmine_reduced_test_set_simplified-detector_output/test_images_detected_labels \
---output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/realmine_reduced_test_set_simplified-detector_output/evaluation \
---image-ext jpg > /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/realmine_reduced_test_set_simplified-detector_output/testset_evaluation.log 2>&1
+--dr-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/simplified-detector_output/preds_voc_format \
+--images-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/simplified-detector_output/test_images_detected_labels \
+--output-dir /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/simplified-detector_output/evaluation \
+--image-ext jpg > /home/bhuvan/Projects/underwater_synthetic_image_recognition/data/darknet_datasets/analysis_insitu-50-gray-realmine-10/yolo_training_files/synthetic-gray-NST/simplified-detector_output/testset_evaluation.log 2>&1
 
-
+# Output directory renamed from 'simplified' to 'realmine_reduced_test_set_simplified' manually.
+# Strangely this was causing an issue when this path was passed to darknet script, because of the long file paths for the images.
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Test Set Mine_images dir-size
