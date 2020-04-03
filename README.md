@@ -17,16 +17,22 @@ Prior literature have experimented with various methods to work with synthetic d
 - Synthetic to Real Adaptation with Generative Correlation Alignment Networks [3](https://arxiv.org/abs/1701.05524): Shows that using neural style transfer gives a lift in average precision on imagenet classes compared to using just synthetic non-photorealistic images from [2](https://arxiv.org/abs/1412.7122). Also proposes DGCAN which performs slightly better than neural style transfer. Implementation of DGCAN present in Caffe.
 
 ## Problem Statement
-We consider a test set from real-world scenarios consisting of images with labeled bounding boxes over the object of interest. We consider Average Precision at 0.5 IOU (Intersection Over Union) as primary evaluation metric. We compare the performance of various object detection models:
-- Built with only Synethitc data (0 real-world data)
+Our goal is to generate synthetic training data for object detection given a 3D model of the object of interest. Also, we aim to study the effect of adding in-situ data on the performance of such an object detection method.
 
-TODO
+We consider a test set from real-world scenarios consisting of images with labeled bounding boxes over the object of interest. We consider Average Precision at 0.5 IOU (Intersection Over Union) as primary evaluation metric. We compare the performance of various settings of object detection models:
+- Built with only Synethitc data. <br>
+- Built with only Synethitc data, plus 50 in-situ background images. <br>
+- Built with only Synethitc data, plus 50 in-situ background images, plus 10 in-situ background images containing real-world object of interest.
 
 ## Methodology
 TODO
 
+**Note:** We did not pursue with generation of artificial background images using DCGAN [4](TODO:dcgan_link) using synthetic images, because we consider a setting where we do not have real-world background images. We experimented using DCGAN to generate synthetic images using synthetic underwated images, but we observed qualitatively insufficient results, and it was computationally very expensive as well. 
+
 ## Results and Discussion
 TODO
+
+**Note:** We tested by training with color-images as well. However, we did not have the color-images in the test data, hence they have been discussed in this brief report. These results are noted in the linked performance analysis sheet.
 
 ## Conclusion and Future Work
 TODO
@@ -38,3 +44,5 @@ TODO
 [2] Learning Deep Object Detection from 3D Models: https://arxiv.org/abs/1412.7122.
 
 [3] Synthetic to Real Adaptation with Generative Correlation Alignment Networks: https://arxiv.org/abs/1701.05524.
+
+[4] TODO: DCGAN reference. TODO:dcgan_link.
