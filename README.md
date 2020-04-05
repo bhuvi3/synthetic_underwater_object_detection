@@ -43,11 +43,11 @@ This module takes the rendered non-photorealistic training images (produced for 
 **Experimental Settings**
 We test the effectiveness of the NST in resulting improvement in the object detection model in different experimental settings. In each setting, we compare baseline versus NST model on the test set using Average Precision at 0.5 IOU metric. These different settings help us determine the effectiveness of including in-situ data (background only, and background with real-world object).
 
--**Unsplash-Insitu-0 :** Training data contains only synthetic background images from Unsplash, and contains no in-situ data at all.
+- **Unsplash-Insitu-0 :** Training data contains only synthetic background images from Unsplash, and contains no in-situ data at all.
 
--**Unsplash-Insitu-50 :** Training data contains synthetic background images from Unsplash alsong with 50 in-situ background images (250 scenes produces from these 50 background images with overlaying objects randomly). Note that this does not contain any images with in-situ real-world object, but it contains only in-situ backgrounds on which 3D models are overlayed as described in the Baseline Model section.
+- **Unsplash-Insitu-50 :** Training data contains synthetic background images from Unsplash alsong with 50 in-situ background images (250 scenes produces from these 50 background images with overlaying objects randomly). Note that this does not contain any images with in-situ real-world object, but it contains only in-situ backgrounds on which 3D models are overlayed as described in the Baseline Model section.
 
--**Unsplash-Insitu-50-Realmine10 :** Training data contains synthetic background images from Unsplash alsong with 50 in-situ background images (250 scenes produces from these 50 background images with overlaying objects randomly), and it also includes 10 in-situ images containing real-world object. These 10 real-mine images were repeated x times to increase their prevalence in the training data.
+- **Unsplash-Insitu-50-Realmine10 :** Training data contains synthetic background images from Unsplash alsong with 50 in-situ background images (250 scenes produces from these 50 background images with overlaying objects randomly), and it also includes 10 in-situ images containing real-world object. These 10 real-mine images were repeated x times to increase their prevalence in the training data.
 
 **Note:** We did not pursue with generation of artificial background images using DCGAN [[4]](https://arxiv.org/abs/1511.06434) using synthetic images, because we consider a setting where we do not have real-world background images. We experimented using DCGAN to generate synthetic images using synthetic underwated images, but we observed qualitatively insufficient results, and it was computationally very expensive as well. 
 
